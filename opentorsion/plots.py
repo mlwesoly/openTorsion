@@ -90,7 +90,9 @@ class Plots:
                     0.90 * frequency_range_rpm[1],
                     0.95 * harmonic * (frequency_range_rpm[1]) / 60,
                     harmonic_labels[i],
-                    bbox=dict(facecolor='white', edgecolor='white', boxstyle='round,pad=0')
+                    bbox=dict(
+                        facecolor="white", edgecolor="white", boxstyle="round,pad=0"
+                    ),
                 )
             else:
                 ax.text(
@@ -117,7 +119,10 @@ class Plots:
         modes : int
             Number of eigenodes to be plotted
         """
-        if self.assembly.gear_elements is not None or self.assembly.elastic_gear_elements is not None:
+        if (
+            self.assembly.gear_elements is not None
+            or self.assembly.elastic_gear_elements is not None
+        ):
             raise NotImplementedError("Support for geared assemblies not implemented")
         if self.assembly.dofs < modes:
             modes = self.assembly.dofs
@@ -179,13 +184,8 @@ class Plots:
 
     def plot_assembly(self):
         """
-        Plots the given assembly as disk and spring elements. Systems with elastic gears 
-        are not supported. 
+        Plots the given assembly as disk and spring elements.
         """
-        
-        if self.assembly.elastic_gear_elements is not None:
-            raise NotImplementedError("Support for elastic geared assemblies not implemented")
-
         fig, ax = plt.subplots(figsize=(5, 4))
         self.plot_on_ax(self.assembly, ax)
         ax.set_xticks(np.arange(0, self.assembly.dofs, step=1))
@@ -217,6 +217,10 @@ class Plots:
             gears = assembly.gear_elements
         else:
             gears = []
+
+        if assembly.elastic_gear_elements is not None:
+            gears.extend(assembly.elastic_gear_elements)
+
         max_I_disk = max(disks, key=lambda disk: disk.I)
         min_I_disk = min(disks, key=lambda disk: disk.I)
         max_I_value = max_I_disk.I
@@ -226,52 +230,57 @@ class Plots:
         num_segments = 8  # number of lines in a spring
         amplitude = 0.1  # spring "height"
         if lighter:
-            gear_face_color = 'red'
-            disk_face_color = 'lightgrey'
-            disk_edge_color = 'darkgrey'
-            spring_color = 'darkgrey'
-            dashpot_color = 'darkgrey'
+            gear_face_color = "red"
+            disk_face_color = "lightgrey"
+            disk_edge_color = "darkgrey"
+            spring_color = "darkgrey"
+            dashpot_color = "darkgrey"
         else:
-            gear_face_color = 'red'
-            disk_face_color = 'darkgrey'
-            disk_edge_color = 'black'
-            spring_color = 'black'
-            dashpot_color = 'black'
+            gear_face_color = "red"
+            disk_face_color = "darkgrey"
+            disk_edge_color = "black"
+            spring_color = "black"
+            dashpot_color = "black"
         lw = 1.5
         disk_lw = lw
         spring_lw = lw
         dashpot_lw = lw
 
         def draw_spring(shaft, y_pos):
-            left  = shaft.nl
+            left = shaft.nl
             right = shaft.nr
             if shaft.c != 0:
-                draw_dashpot(((left + right) / 2, -2 * y_pos + amplitude * 1.5), 2 * amplitude, right - left - width)
-                y_pos += amplitude*1.5/2
-            x1, y1 = left  + width / 2, -2 * y_pos
+                draw_dashpot(
+                    ((left + right) / 2, -2 * y_pos + amplitude * 1.5),
+                    2 * amplitude,
+                    right - left - width,
+                )
+                y_pos += amplitude * 1.5 / 2
+            x1, y1 = left + width / 2, -2 * y_pos
             x2, y2 = right - width / 2, -2 * y_pos
-            seg_len = (x2-x1) / num_segments # length of a spring segment
-            x_values = np.linspace(x1 + 1.5 * seg_len, x2 - 1.5 * seg_len, num_segments - 2)
-            x_values = np.insert(x_values,  0, x1)
-            x_values = np.insert(x_values,  1, x1 + seg_len)
+            seg_len = (x2 - x1) / num_segments  # length of a spring segment
+            x_values = np.linspace(
+                x1 + 1.5 * seg_len, x2 - 1.5 * seg_len, num_segments - 2
+            )
+            x_values = np.insert(x_values, 0, x1)
+            x_values = np.insert(x_values, 1, x1 + seg_len)
             x_values = np.append(x_values, x2 - seg_len)
             x_values = np.append(x_values, x2)
-            y_values = np.linspace(y1, y2, num_segments+2)
-            for i in range(2, len(y_values)-2):
+            y_values = np.linspace(y1, y2, num_segments + 2)
+            for i in range(2, len(y_values) - 2):
                 if i % 2 == 0:
                     y_values[i] += amplitude
                 else:
                     y_values[i] -= amplitude
-            ax.plot(
-                x_values, y_values, color=spring_color, linewidth=spring_lw
-            )
+            ax.plot(x_values, y_values, color=spring_color, linewidth=spring_lw)
 
         def draw_disk(disk, i, color="darkgrey"):
             if max_I_value == min_I_value:
                 height = disk_max
             else:
                 height = disk_min + (disk.I - min_I_value) * (disk_max - disk_min) / (
-                    max_I_value - min_I_value) 
+                    max_I_value - min_I_value
+                )
             pos = (disk.node - width / 2, -height / 2 - 2 * i)
             ax.add_patch(
                 patches.Rectangle(
@@ -281,28 +290,47 @@ class Plots:
                     fill=True,
                     edgecolor=disk_edge_color,
                     facecolor=color,
-                    linewidth=disk_lw)
+                    linewidth=disk_lw,
+                )
             )
 
         def draw_dashpot(center, height, width):
-            ax.plot([center[0] - width / 2, center[0] - width / 4],
-                    [center[1], center[1]],
-                    color=dashpot_color, lw=dashpot_lw)
-            ax.plot([center[0] - width / 4, center[0] - width / 4],
-                    [center[1] - height / 2, center[1] + height / 2],
-                    color=dashpot_color, lw=dashpot_lw)
-            ax.plot([center[0] - width / 4, center[0] + width / 4],
-                    [center[1] + height / 2, center[1] + height / 2],
-                    color=dashpot_color, lw=dashpot_lw)
-            ax.plot([center[0] - width / 4, center[0] + width / 4],
-                    [center[1] - height / 2, center[1] - height / 2],
-                    color=dashpot_color, lw=dashpot_lw)
-            ax.plot([center[0], center[0]],
-                    [center[1] - height / 2, center[1] + height / 2],
-                    color=dashpot_color, lw=dashpot_lw)
-            ax.plot([center[0], center[0] + width / 2],
-                    [center[1], center[1]],
-                    color=dashpot_color, lw=dashpot_lw)
+            ax.plot(
+                [center[0] - width / 2, center[0] - width / 4],
+                [center[1], center[1]],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
+            ax.plot(
+                [center[0] - width / 4, center[0] - width / 4],
+                [center[1] - height / 2, center[1] + height / 2],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
+            ax.plot(
+                [center[0] - width / 4, center[0] + width / 4],
+                [center[1] + height / 2, center[1] + height / 2],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
+            ax.plot(
+                [center[0] - width / 4, center[0] + width / 4],
+                [center[1] - height / 2, center[1] - height / 2],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
+            ax.plot(
+                [center[0], center[0]],
+                [center[1] - height / 2, center[1] + height / 2],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
+            ax.plot(
+                [center[0], center[0] + width / 2],
+                [center[1], center[1]],
+                color=dashpot_color,
+                lw=dashpot_lw,
+            )
 
         gear_pos = {}
         for gear in gears:
@@ -318,11 +346,11 @@ class Plots:
                 draw_spring(shaft, y_height)
                 prev_nr = shaft.nr
             else:
-                if shaft.nl-1 in gear_pos:
-                    draw_disk(gear_pos[shaft.nl-1][0], y_height, gear_face_color)
-                    gear_pos[shaft.nl-1][1] = [shaft.nl-1, -2 * y_height]
-                elif shaft.nl-1 in disk_pos:
-                    draw_disk(disk_pos[shaft.nl-1], y_height, disk_face_color)
+                if shaft.nl - 1 in gear_pos:
+                    draw_disk(gear_pos[shaft.nl - 1][0], y_height, gear_face_color)
+                    gear_pos[shaft.nl - 1][1] = [shaft.nl - 1, -2 * y_height]
+                elif shaft.nl - 1 in disk_pos:
+                    draw_disk(disk_pos[shaft.nl - 1], y_height, disk_face_color)
                 y_height += 1
                 draw_spring(shaft, y_height)
                 prev_nr = shaft.nr
@@ -353,5 +381,6 @@ class Plots:
                         gear_pos[gear.stages[0][0][0]][1][1],
                     ],
                     "k--",
-                    zorder=-1)
+                    zorder=-1,
+                )
         return
