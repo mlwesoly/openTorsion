@@ -194,6 +194,12 @@ class Assembly:
             for element in self.disk_elements:
                 C[element.node, element.node] += element.C()
 
+        if self.elastic_gear_elements is not None:
+            for element in self.elastic_gear_elements:
+                if element.parent is not None:
+                    dofs = np.array([element.parent.node, element.node])
+                    C[np.ix_(dofs, dofs)] += element.C()
+
         if self.gear_elements is not None:
             for element in self.gear_elements:
                 C[element.node, element.node] += element.C()
@@ -330,13 +336,14 @@ class Assembly:
                 S[np.ix_(v, h)] += element.K()[0]
                 D[np.ix_(v, h)] += element.C()[0]
 
-        # Adding elastic gears to S
+        # Adding elastic gears to S and D marix
         if self.elastic_gear_elements is not None:
             for element in self.elastic_gear_elements:
                 if element.parent is not None:
                     h = np.array([element.parent.node, element.node])
                     v = np.array([element.parent.node, element.parent.node])
                     S[np.ix_(v, h)] += element.K()[0]
+                    D[np.ix_(v, h)] += element.C()[0]
 
         # Removing empty rows
         non_zero = ~np.all(S == 0, axis=1)

@@ -26,12 +26,13 @@ class ElasticGear:
         openTorsion Gear instance of the connected parent gear
     """
 
-    def __init__(self, node, I, R, k=None, parent=None):
+    def __init__(self, node, I, R, k=None, c=None, parent=None):
 
         self.node = node
         self.I = I
         self.R = R
         self.k = k
+        self.c = c
         self.parent = parent
 
         if parent is None:
@@ -87,10 +88,25 @@ class ElasticGear:
 
         Returns
         -------
-        M: ndarray
+        C: ndarray
             Damping matrix of the gear element
         """
 
-        C = np.zeros((1))
+        c = self.c
+
+        # Initialize matrix
+        C = np.array([[1, -1], [-1, 1]], dtype=np.float64) * c
+
+        # Multiply first row and first column with R of parent
+        R_P = -1
+        C[0] *= R_P
+        C[0][0] *= R_P
+        C[1][0] *= R_P
+
+        # Multiply second row and second column with R of child
+        R = self.R / self.parent.R
+        C[1] *= R
+        C[0][1] *= R
+        C[1][1] *= R
 
         return C
