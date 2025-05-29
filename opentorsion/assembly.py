@@ -66,10 +66,7 @@ class Assembly:
         self.C = self.assemble_C()
         self.K = self.assemble_K()
 
-        if gear_elements is not None and elastic_gear_elements is not None:
-            self.S, self.D, self.X = 0, 0, 0
-        else:
-            self.S, self.D, self.X = self.transform_matrices()
+        self.S, self.D, self.X = self.transform_matrices()
 
     @classmethod
     def from_tors(cls, json_data):
