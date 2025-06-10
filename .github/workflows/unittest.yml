@@ -25,7 +25,7 @@ jobs:
 
       - name: Install project dependencies with pipenv
         run: |
-          pipenv install --dev
+          pipenv update
 
       - name: Test with unittest
         run: |
