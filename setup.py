@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     package_dir={"opentorsion": "opentorsion"},
     packages=setuptools.find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.11",
     install_requires=[
         "matplotlib",
         "numpy",
