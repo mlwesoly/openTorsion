@@ -25,7 +25,7 @@ class Assembly:
         shaft_elements,
         disk_elements=None,
         gear_elements=None,
-        elastic_gear_elements=None
+        elastic_gear_elements=None,
     ):
         """
         Parameters
@@ -54,7 +54,8 @@ class Assembly:
             self.elastic_gear_elements = None
         else:
             self.elastic_gear_elements = [
-                copy(elastic_gear_element) for elastic_gear_element in elastic_gear_elements
+              copy(elastic_gear_element) 
+              for elastic_gear_element in elastic_gear_elements
             ]
 
         self.disk_elements = disk_elements
@@ -65,10 +66,7 @@ class Assembly:
         self.C = self.assemble_C()
         self.K = self.assemble_K()
 
-        if gear_elements is not None and elastic_gear_elements is not None:
-            raise NotImplementedError("Support for assmeblies with both rigid and elastic gear elements is not implemented.")
-        else:
-            self.S, self.D, self.X = self.transform_matrices()
+        self.S, self.D, self.X = self.transform_matrices()
 
     @classmethod
     def from_tors(cls, json_data):
@@ -85,7 +83,7 @@ class Assembly:
         Assembly: An instance of the Assembly class.
         """
         from opentorsion.parser import Parser
-        
+
         return Parser.from_tors(json_data)[0]
 
     def assemble_M(self):
@@ -196,6 +194,12 @@ class Assembly:
             for element in self.disk_elements:
                 C[element.node, element.node] += element.C()
 
+        if self.elastic_gear_elements is not None:
+            for element in self.elastic_gear_elements:
+                if element.parent is not None:
+                    dofs = np.array([element.parent.node, element.node])
+                    C[np.ix_(dofs, dofs)] += element.C()
+
         if self.gear_elements is not None:
             for element in self.gear_elements:
                 C[element.node, element.node] += element.C()
@@ -298,7 +302,7 @@ class Assembly:
         return A, B
 
     def transform_matrices(self, C=None):
-        '''
+        """
         Calculates the transformation matrices S, D and X needed for calculating vibratory
         torque and converting state-space system into minimal form.
 
@@ -315,8 +319,8 @@ class Assembly:
             Transformation matrix D
         ndarray
             Transformation matrix X
-        '''
-        rows = self.M.shape[0] - 1
+        """
+        rows = self.dofs - 1
         cols = self.M.shape[0]
 
         S = np.zeros((rows, self.dofs))
@@ -324,39 +328,34 @@ class Assembly:
         X_down = np.eye(cols)
         Z_down = np.zeros(X_down.shape)
 
+        # Assembling S and D matrix
+        if self.shaft_elements is not None:
+            for i, element in enumerate(self.shaft_elements):
+                h = np.array([element.nl, element.nr])
+                v = np.array([element.nl, element.nl])
+                S[np.ix_(v, h)] += element.K()[0]
+                D[np.ix_(v, h)] += element.C()[0]
+
+        # Adding elastic gears to S and D marix
         if self.elastic_gear_elements is not None:
-            # Assembling S and D matrix (with elastic gear elements)
-            if self.shaft_elements is not None:
-                for i, element in enumerate(self.shaft_elements):
-                    h = np.array([element.nl, element.nr])
-                    v = np.array([element.nl, element.nl])
-                    S[np.ix_(v, h)] += element.K()[0]
-                    D[np.ix_(v, h)] += element.C()[0]
-            
-            # Adding elastic gears to S and D
-            if self.elastic_gear_elements is not None:
-                for element in self.elastic_gear_elements:
-                    if element.parent is not None:
-                        h = np.array([element.parent.node, element.node])
-                        v = np.array([element.parent.node, element.parent.node])
-                        S[np.ix_(v, h)] += element.K()[0]
-                        D[np.ix_(v, h)] += element.C()[0]
-
-        else:
-            # Assembling S and D matrix (without elastic gear elements)
-            if self.shaft_elements is not None:
-                for i, element in enumerate(self.shaft_elements):
-                    h = np.array([element.nl, element.nr])
-                    v = np.array([i, i])
+            for element in self.elastic_gear_elements:
+                if element.parent is not None:
+                    h = np.array([element.parent.node, element.node])
+                    v = np.array([element.parent.node, element.parent.node])
                     S[np.ix_(v, h)] += element.K()[0]
                     D[np.ix_(v, h)] += element.C()[0]
 
-            # Adding gear constraints to S and D
-            if self.gear_elements is not None:
-                E = self.E()
-                T = self.T(E)
-                S = np.dot(S, T)
-                D = np.dot(D, T)
+        # Removing empty rows
+        non_zero = ~np.all(S == 0, axis=1)
+        S = S[non_zero]
+        D = D[non_zero]
+
+        # Adding gear constraints to S and D
+        if self.gear_elements is not None:
+            E = self.E()
+            T = self.T(E)
+            S = np.dot(S, T)
+            D = np.dot(D, T)
 
         # Forming transformation matrix X
         X = np.vstack([np.hstack([S, D]), np.hstack([Z_down, X_down])])
@@ -433,14 +432,13 @@ class Assembly:
         for i, w in enumerate(omegas):
             if C_func is not None:
                 C = C_func(w)
-            receptance = np.linalg.inv(-self.M * w ** 2 + w * 1.0j * C + self.K)
+            receptance = np.linalg.inv(-self.M * w**2 + w * 1.0j * C + self.K)
             q = receptance @ excitations[:, i]
             w = q * 1.0j * w
             q_matrix[:, i] = q.ravel()
             w_matrix[:, i] = w.ravel()
 
         return q_matrix, w_matrix
-
 
     def vibratory_torque(self, periodicExcitation, C=None, C_func=None):
         """
@@ -466,7 +464,7 @@ class Assembly:
 
         U = periodicExcitation.U
         omegas = periodicExcitation.omegas
-        T_vib = np.zeros((U.shape[0]-1, U.shape[1]), dtype="complex128")
+        T_vib = np.zeros((U.shape[0] - 1, U.shape[1]), dtype="complex128")
 
         q_res, w_res = self.ss_response(U, omegas, C=C, C_func=C_func)
         for i, column in enumerate(q_res.T):
