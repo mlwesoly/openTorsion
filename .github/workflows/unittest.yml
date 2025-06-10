@@ -23,10 +23,12 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install flake8
           pip install -r requirements.txt
+          pip install pipenv
 
       - name: Test with unittest
         run: |
-          python -m unittest
+          pipenv install --dev
+          pipenv run python -m unittest
 
       - name: Lint with flake8
         run: |
