@@ -54,8 +54,8 @@ class Assembly:
             self.elastic_gear_elements = None
         else:
             self.elastic_gear_elements = [
-                copy(elastic_gear_element)
-                for elastic_gear_element in elastic_gear_elements
+              copy(elastic_gear_element) 
+              for elastic_gear_element in elastic_gear_elements
             ]
 
         self.disk_elements = disk_elements
