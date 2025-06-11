@@ -56,7 +56,7 @@ class Gear:
         Returns
         -------
         M: ndarray
-            Mass matrix of the gear element
+            Stiffness matrix of the gear element
         """
 
         K = np.zeros((1))
@@ -69,7 +69,7 @@ class Gear:
         Returns
         -------
         M: ndarray
-            Mass matrix of the gear element
+            Damping matrix of the gear element
         """
 
         C = np.zeros((1))
