@@ -2,15 +2,12 @@ name: Unit tests
 
 on: [push]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.11, 3.12, 3.13]
 
@@ -28,7 +25,9 @@ jobs:
           pip install pipenv
 
       - name: Install dependencies from Pipfile.lock
-        run: pipenv sync --dev
+        run: |
+          pipenv --python $(which python)
+          pipenv sync --dev
         timeout-minutes: 10
 
       - name: Run tests
